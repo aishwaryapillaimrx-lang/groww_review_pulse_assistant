@@ -6,18 +6,22 @@ Labelled reviews and themes are cached in outputs/, so reruns are free unless --
 """
 import argparse
 import json
+import os
 import sys
+from datetime import date
 from pathlib import Path
 
 import pandas as pd
 
 from pulse.fees import detect_fee_issue
+from pulse.generate import generate_run, render_support_snippet
 from pulse.ingest import load_reviews
 from pulse.quotes import select_quotes
 from pulse.themes import assign_reviews, discover_themes, rank_themes, top_themes
 
 OUT = Path("outputs")
 REGISTRY = Path("config/fee_registry.json")
+PULSE_QUOTE_MAX_CHARS = 120  # keeps the pulse inside its 250-word budget
 
 
 def analyse(csv_path, refresh=False, llm=None):
@@ -54,7 +58,7 @@ def analyse(csv_path, refresh=False, llm=None):
     registry = json.loads(REGISTRY.read_text(encoding="utf-8"))
     fee_issue = detect_fee_issue(labelled, registry)
     top3 = [t["id"] for t in top_themes(ranked)]
-    quotes = select_quotes(labelled, top3)
+    quotes = select_quotes(labelled, top3, max_chars=PULSE_QUOTE_MAX_CHARS)
     return labelled, ranked, fee_issue, quotes
 
 
@@ -63,9 +67,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--csv", default="data/reviews.csv")
     parser.add_argument("--refresh", action="store_true")
+    parser.add_argument("--analysis-only", action="store_true", help="skip writing the pulse and explainer")
     args = parser.parse_args()
 
-    _, ranked, fee_issue, quotes = analyse(args.csv, args.refresh)
+    labelled, ranked, fee_issue, quotes = analyse(args.csv, args.refresh)
     print("\nAll themes ranked by volume ('Other / praise' is excluded from the top 3):")
     for i, t in enumerate(ranked, 1):
         print(f"  {i}. {t['name']}: {t['count']} reviews ({t['share']:.1%}), avg {t['avg_rating']}/5 - {t['description']}")
@@ -80,6 +85,21 @@ def main():
     print("\nWhat the 'other' fee complaints look like:")
     for e in fee_issue["other_examples"]:
         print(f"  (rated {e['rating']}/5): {e['text']}")
+
+    if args.analysis_only:
+        return
+    from pulse.llm import LLM
+    from pulse.validate import word_count
+
+    registry = json.loads(REGISTRY.read_text(encoding="utf-8"))
+    llm = LLM()
+    run = generate_run(labelled, top_themes(ranked), quotes, names, fee_issue, registry, llm,
+                       date.today().isoformat(), int(os.getenv("REVIEW_WEEKS", 12)))
+    print(f"\n===== WEEKLY PULSE ({word_count(run['pulse'])} words, limit 250) =====\n{run['pulse']}")
+    print(f"\n===== FEE EXPLAINER =====\n{render_support_snippet(run['explainer'])}")
+    print(f"\nRun {run['run_id']} | model calls: {llm.calls} | cost: ${llm.cost_usd():.3f}")
+    print("Saved:", ", ".join(str(p) for p in run["paths"].values()))
+    print("Approval status: pending (nothing has been written to Google Docs or Gmail)")
 
 
 if __name__ == "__main__":

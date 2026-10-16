@@ -47,3 +47,10 @@ def check_links(links, fee_entry):
     expected = [s["url"] for s in fee_entry["sources"]]
     if list(links) != expected:
         raise ValidationError(f"Links {list(links)} do not match registry {expected}")
+
+
+def check_numbers_grounded(text, facts_text):
+    """Every number in model-written text must appear in the computed facts (PRD R2.3)."""
+    unknown = numbers_in(text) - numbers_in(facts_text)
+    if unknown:
+        raise ValidationError(f"Number(s) {sorted(unknown)} are not in the computed analysis")

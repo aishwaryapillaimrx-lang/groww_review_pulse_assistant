@@ -24,7 +24,7 @@ def is_verbatim(original, all_texts):
     return any(original in t for t in all_texts)
 
 
-def select_quotes(df, theme_ids):
+def select_quotes(df, theme_ids, max_chars=MAX_QUOTE_CHARS):
     """One quote per theme. df needs review_id, text, rating, thumbs_up, date, theme_id."""
     all_texts = df["text"].tolist()
     used = set()
@@ -32,7 +32,7 @@ def select_quotes(df, theme_ids):
     for theme_id in theme_ids:
         theme = df[df["theme_id"] == theme_id]
         length = theme["text"].str.len()
-        pool = theme[(length >= MIN_QUOTE_CHARS) & (length <= MAX_QUOTE_CHARS)]
+        pool = theme[(length >= MIN_QUOTE_CHARS) & (length <= max_chars)]
         pool = pool[~pool["review_id"].isin(used)]
 
         # Problem themes prefer unhappy reviews, praise themes prefer happy ones.
