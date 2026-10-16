@@ -1,0 +1,56 @@
+{
+  "_comment": "Curated, human-verified fee facts. The explainer generator may ONLY restate these facts; links are attached from here, never invented by the model. Re-verify and bump last_checked before each weekly run.",
+  "last_checked": "2026-10-16",
+  "fees": {
+    "dp_charges": {
+      "label": "DP (Depository Participant) charge on selling shares",
+      "keywords": ["dp charge", "dp charges", "dp fee", "depository", "cdsl", "charged on sell", "charge on selling", "sell charge", "selling charge", "charged when i sold", "charged for selling", "20 rs", "rs 20", "rs.20", "₹20", "16.5", "18.5", "per sell", "per stock sold"],
+      "facts": [
+        "A DP charge applies each time delivery shares are sold (debited) from the Groww demat account. Buying shares does not attract it.",
+        "Per sell transaction it is the depository charge of ₹3.50 (₹3.25 for women investors) plus Groww's charge of ₹16.50.",
+        "If the sell (debit) value is below ₹100, Groww waives its ₹16.50 part and only the depository charge applies.",
+        "18% GST is added on top of DP charges.",
+        "DP charges are separate from brokerage. Equity brokerage is ₹20 or 0.1% per executed order, whichever is lower, with a minimum of ₹5.",
+        "Intraday and F&O trades have ₹0 DP charges.",
+        "Account opening and account maintenance charges (AMC) on Groww are ₹0."
+      ],
+      "sources": [
+        {"title": "Groww — Brokerage Charges & Pricing (Stocks)", "url": "https://groww.in/pricing/stocks"},
+        {"title": "Groww Help — How much does Groww charge for stocks?", "url": "https://groww.in/help/stocks%2C-f%26o%2C-ipo-%26-mtf/sx-demat-account/how-much-does-groww-charge-for-stocks-1"}
+      ]
+    },
+    "exit_load": {
+      "label": "Exit load on mutual fund redemption",
+      "keywords": ["exit load", "exit-load", "exitload", "redemption charge", "charged on redemption", "deducted on redemption", "less amount on redeem", "withdrawal charge", "redeem", "redemption amount"],
+      "facts": [
+        "Exit load is a fee charged by the mutual fund's AMC (fund house), not by Groww, when units are redeemed before a period set by the scheme.",
+        "It is a percentage of the redemption value (NAV × units redeemed) and is deducted from the redemption proceeds, so it does not appear as a separate bill.",
+        "Each scheme sets its own exit load in its Scheme Information Document (SID); some schemes have no exit load.",
+        "Many equity funds charge around 1% if units are redeemed within the first 12 months, but this varies by fund house.",
+        "Each SIP instalment is treated as a fresh purchase, so each instalment's exit-load period runs from its own allotment date.",
+        "Example: a ₹27,000 redemption value with a 1% exit load means ₹270 is deducted and ₹26,730 is credited.",
+        "Groww charges zero commission on direct mutual funds."
+      ],
+      "sources": [
+        {"title": "Groww — Exit Load in Mutual Funds", "url": "https://groww.in/p/exit-load-in-mutual-funds"},
+        {"title": "SEBI Investor Website — Exit Load", "url": "https://investor.sebi.gov.in/exit_load.html"}
+      ]
+    },
+    "brokerage": {
+      "label": "Equity brokerage and minimum brokerage",
+      "keywords": ["brokerage", "minimum brokerage", "min brokerage", "₹5", "rs 5", "0.1%", "upi mandate", "1% brokerage", "stt", "stamp duty", "statutory"],
+      "facts": [
+        "Equity brokerage on Groww is ₹20 or 0.1% per executed order, whichever is lower, with a minimum of ₹5.",
+        "Orders placed using UPI Mandate balance are charged 1% of the order value as brokerage, with no maximum cap.",
+        "STT, stamp duty, exchange transaction charges and SEBI turnover charges are regulatory and statutory charges, not Groww fees.",
+        "18% GST applies on brokerage, DP charges and exchange transaction charges.",
+        "Account opening and account maintenance charges (AMC) on Groww are ₹0."
+      ],
+      "sources": [
+        {"title": "Groww — Brokerage Charges & Pricing (Stocks)", "url": "https://groww.in/pricing/stocks"},
+        {"title": "Groww Help — How much does Groww charge for stocks?", "url": "https://groww.in/help/stocks%2C-f%26o%2C-ipo-%26-mtf/sx-demat-account/how-much-does-groww-charge-for-stocks-1"}
+      ]
+    }
+  },
+  "generic_fee_keywords": ["charge", "charges", "charged", "fee", "fees", "deduct", "deducted", "hidden", "cut", "commission", "gst", "penalty", "extra money", "less amount"]
+}
