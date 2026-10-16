@@ -27,7 +27,7 @@ If n8n shows a node as "unknown" or a field is missing after import, open it and
 
 ## 5. Activate and copy the URL
 - Toggle the workflow **Active** (top right).
-- Open **MCP Server Trigger** and copy the **Production URL** (ends in `/mcp/groww-pulse`; the Test URL will not work for our client).
+- Open **MCP Server Trigger** and copy the **Production URL**. On n8n Cloud it ends in `/mcp/groww-pulse/sse` (the older SSE transport); our client detects the `/sse` suffix and uses SSE automatically. Do not use the Test URL: it only works while the editor is open and listening.
 - Put it in `.env` as `N8N_MCP_URL=`.
 
 ## 6. Check the connection (writes nothing)

@@ -155,3 +155,11 @@ def test_no_send_tool_is_ever_called(run_dir):
     factory, _ = factory_for(session)
     publish_sync(run_dir, factory)
     assert all(name != "send_email" for name, _ in session.calls)
+
+
+def test_transport_chosen_from_url():
+    from pulse.mcp_publish import uses_sse
+
+    assert uses_sse("https://x.app.n8n.cloud/mcp/groww-pulse/sse")
+    assert uses_sse("https://x.app.n8n.cloud/mcp/groww-pulse/sse/")
+    assert not uses_sse("https://x.app.n8n.cloud/mcp/groww-pulse")
