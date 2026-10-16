@@ -94,6 +94,7 @@ def test_generate_run_payload_files_and_pending_approval(tmp_path):
     assert len(run["payload"]["source_links"]) == 2
     assert run["subject"] == "Weekly Product Pulse + Customer Clarification — 2026-10-16"
     assert "--- Support snippet:" in run["body"] and "Last checked: 2026-10-16" in run["body"]
+    assert "#" not in run["body"] and "**" not in run["body"]  # email body is plain text
 
     approval = json.loads(run["paths"]["approval"].read_text(encoding="utf-8"))
     assert approval["status"] == "pending"

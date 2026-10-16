@@ -33,3 +33,5 @@ Source: review of `PRD.md` and `implementation.md` (16 Oct 2026). None of these 
 - C2. Re-estimate effort (1.5–2 days looks optimistic given OAuth, n8n verification and validator edge cases).
 - C4. Contingency: local mock MCP server (`mock_mcp_server.py`, `FastMCP` stdio, same two tools, writes `.md` and `.eml`, selected via `MCP_MODE=mock`). Build only if n8n can't be made to work (wrong tool names or arguments, or Google credentials blocked).
 - C3. Housekeeping: confirm the PRD owner name, and align the repo folder name with the `groww-pulse/` layout.
+- C5. Rich formatting: HTML email body (Gmail node email type HTML + markdown-to-HTML) and styled Doc headings/bold via Docs batchUpdate. v1 sends clean plain text (pulse/render.py).
+- C6. Guard against a second approved run for the same date (a new run ID currently appends a second Doc entry and a second draft).

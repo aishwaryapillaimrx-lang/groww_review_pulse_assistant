@@ -4,6 +4,8 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
+from pulse.render import render_doc_entry
+
 
 class ApprovalError(Exception):
     pass
@@ -100,19 +102,10 @@ def mark_published(run_id, out_dir):
     return record
 
 
-def format_preview(payload, subject, body):
-    """Everything the approver is approving, shown in full (PRD R4.1)."""
-    fee = payload["identified_fee_issue"]
-    themes = "\n".join(f"  - {t['name']}: {t['count']} reviews ({t['share'] * 100:.1f}%)" for t in payload["top_themes"])
-    bullets = "\n".join(f"  - {b}" for b in payload["explanation_bullets"])
-    links = "\n".join(f"  - {u}" for u in payload["source_links"])
+def format_preview(run_id, payload, subject, body):
+    """Everything the approver is approving, exactly as it will be written (PRD R4.1)."""
     return (
-        f"=== GOOGLE DOC ENTRY ({payload['date']}) ===\n"
-        f"Top themes:\n{themes}\n"
-        f"Identified fee issue: {fee['label']} ({fee['fee_key']}), {fee['mentions']} mentions\n"
-        f"Explanation bullets:\n{bullets}\n"
-        f"Source links:\n{links}\n\n"
-        f"Weekly pulse:\n{payload['weekly_pulse']}\n\n"
-        f"=== GMAIL DRAFT (will be a draft only, never sent) ===\n"
+        "=== GOOGLE DOC: this text is appended to the end of the Doc ===" + render_doc_entry(run_id, payload) + "\n"
+        "=== GMAIL DRAFT (a draft only, never sent) ===\n"
         f"Subject: {subject}\n\n{body}"
     )

@@ -42,7 +42,7 @@ def main():
     if status == "rejected":
         sys.exit(f"Run {args.run_id} was rejected by {record.get('approver')}; nothing will be written.")
     if status == "pending":
-        print(approval.format_preview(*approval.load_run(args.run_id, args.out)))
+        print(approval.format_preview(args.run_id, *approval.load_run(args.run_id, args.out)))
         print("\nType APPROVE to publish, REJECT to reject, anything else to leave it pending.")
         answer = input("> ").strip()
         if answer == "REJECT":

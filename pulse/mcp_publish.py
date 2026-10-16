@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 
 from pulse import approval
+from pulse.render import render_doc_entry  # noqa: F401  (re-exported)
 
 load_dotenv()
 
@@ -49,23 +50,6 @@ async def n8n_session():
                 async with ClientSession(read, write) as session:
                     await session.initialize()
                     yield session
-
-
-def render_doc_entry(run_id, payload):
-    """Plain-text block appended to the end of the Google Doc (implementation.md §7)."""
-    fee = payload["identified_fee_issue"]
-    themes = "; ".join(f"{t['name']} ({t['count']}, {t['share'] * 100:.1f}%)" for t in payload["top_themes"])
-    bullets = "\n".join(f"• {b}" for b in payload["explanation_bullets"])
-    links = "\n".join(f"- {u}" for u in payload["source_links"])
-    return (
-        f"\n\n==== Weekly Pulse — {payload['date']} (run {run_id}) ====\n"
-        f"date: {payload['date']}\n"
-        f"top_themes: {themes}\n"
-        f"identified_fee_issue: {fee['label']} ({fee['fee_key']}), {fee['mentions']} mentions\n"
-        f"weekly_pulse:\n{payload['weekly_pulse']}\n"
-        f"explanation_bullets:\n{bullets}\n"
-        f"source_links:\n{links}\n"
-    )
 
 
 def _summarise(result):
