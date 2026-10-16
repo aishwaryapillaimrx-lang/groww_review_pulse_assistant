@@ -8,6 +8,7 @@ import uuid
 from pathlib import Path
 
 from pulse.approval import write_run_files
+from pulse.render import to_plain_text
 from pulse.validate import (
     ValidationError,
     check_explainer,
@@ -162,7 +163,7 @@ def generate_run(labelled, top, quotes, names, fee_issue, registry, llm, date, w
     explainer = write_explainer(fee_issue, registry, llm)
     payload = build_payload(date, top, pulse_md, fee_issue, explainer)
     subject = SUBJECT.format(date=date)
-    body = f"{pulse_md}\n\n{render_support_snippet(explainer)}\n"
+    body = f"{to_plain_text(pulse_md)}\n\n{render_support_snippet(explainer)}\n"
 
     run_id = uuid.uuid4().hex[:8]
     out = Path(out_dir)
