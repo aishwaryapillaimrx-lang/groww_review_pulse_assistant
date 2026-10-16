@@ -1,0 +1,110 @@
+"""Publish an approved run to Google Docs and Gmail drafts through the n8n MCP server.
+
+Nothing here can send email: only append_to_doc and create_email_draft are ever called.
+"""
+import os
+from contextlib import asynccontextmanager
+
+from dotenv import load_dotenv
+
+from pulse import approval
+
+load_dotenv()
+
+REQUIRED_TOOLS = ("append_to_doc", "create_email_draft")
+
+
+class PublishError(Exception):
+    pass
+
+
+@asynccontextmanager
+async def n8n_session():
+    """Open an MCP session to the n8n MCP Server Trigger (streamable HTTP, bearer auth)."""
+    from mcp import ClientSession
+    from mcp.client.streamable_http import create_mcp_http_client, streamable_http_client
+
+    url, token = os.getenv("N8N_MCP_URL"), os.getenv("N8N_MCP_TOKEN")
+    if not url or not token or "<your-n8n>" in url:
+        raise PublishError("Set N8N_MCP_URL and N8N_MCP_TOKEN in .env first")
+    http_client = create_mcp_http_client(headers={"Authorization": f"Bearer {token}"})
+    async with http_client:
+        async with streamable_http_client(url, http_client=http_client) as (read, write):
+            async with ClientSession(read, write) as session:
+                await session.initialize()
+                yield session
+
+
+def render_doc_entry(run_id, payload):
+    """Plain-text block appended to the end of the Google Doc (implementation.md §7)."""
+    fee = payload["identified_fee_issue"]
+    themes = "; ".join(f"{t['name']} ({t['count']}, {t['share'] * 100:.1f}%)" for t in payload["top_themes"])
+    bullets = "\n".join(f"• {b}" for b in payload["explanation_bullets"])
+    links = "\n".join(f"- {u}" for u in payload["source_links"])
+    return (
+        f"\n\n==== Weekly Pulse — {payload['date']} (run {run_id}) ====\n"
+        f"date: {payload['date']}\n"
+        f"top_themes: {themes}\n"
+        f"identified_fee_issue: {fee['label']} ({fee['fee_key']}), {fee['mentions']} mentions\n"
+        f"weekly_pulse:\n{payload['weekly_pulse']}\n"
+        f"explanation_bullets:\n{bullets}\n"
+        f"source_links:\n{links}\n"
+    )
+
+
+def _summarise(result):
+    return {
+        "is_error": bool(result.is_error),
+        "content": [c.text for c in result.content if getattr(c, "text", None)],
+    }
+
+
+def _first_leaf(group):
+    """Innermost error message of a (possibly nested) ExceptionGroup, for a readable report."""
+    while isinstance(group, BaseExceptionGroup):
+        group = group.exceptions[0]
+    return f"{type(group).__name__}: {group}"
+
+
+async def publish(run_id, out_dir="outputs", session_factory=None):
+    """Publish one approved run. Safe to call again: tools that already succeeded are skipped."""
+    record = approval.assert_publishable(run_id, out_dir)  # raises unless approved and unchanged
+    done = record.get("tool_results", {})
+    if all(tool in done for tool in REQUIRED_TOOLS):
+        return record  # already published; open no connection
+
+    payload, subject, body = approval.load_run(run_id, out_dir)
+    calls = {
+        "append_to_doc": {"entry_text": render_doc_entry(run_id, payload)},
+        "create_email_draft": {"subject": subject, "body": body},
+    }
+    failure = None
+    try:
+        async with (session_factory or n8n_session)() as session:
+            available = {t.name for t in (await session.list_tools()).tools}
+            missing = [t for t in REQUIRED_TOOLS if t not in available]
+            if missing:
+                failure = f"n8n MCP server is missing tool(s) {missing}; it offers {sorted(available)}"
+            else:
+                for tool in REQUIRED_TOOLS:
+                    if tool in done:
+                        continue
+                    summary = _summarise(await session.call_tool(tool, calls[tool]))
+                    if summary["is_error"]:
+                        failure = f"{tool} failed: {summary['content']}"
+                        break
+                    approval.record_tool_result(run_id, out_dir, tool, summary)
+    except BaseExceptionGroup as group:
+        raise PublishError(f"Could not use the n8n MCP server: {_first_leaf(group)}") from None
+    if failure:
+        raise PublishError(failure)
+    return approval.mark_published(run_id, out_dir)
+
+
+async def describe_tools(session_factory=None):
+    """List the server's tools and their input schemas (used to verify names and arguments)."""
+    try:
+        async with (session_factory or n8n_session)() as session:
+            return [(t.name, t.input_schema) for t in (await session.list_tools()).tools]
+    except BaseExceptionGroup as group:
+        raise PublishError(f"Could not use the n8n MCP server: {_first_leaf(group)}") from None
