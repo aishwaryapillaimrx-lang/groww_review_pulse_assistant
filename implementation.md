@@ -33,7 +33,7 @@ Companion to `PRD.md` (Milestone 5, builds on Milestone 4). This is the build pl
 |---|---|---|
 | Scraping | `google-play-scraper` (Python) | Runs on your machine |
 | Data | `pandas` | |
-| LLM | Claude API via `anthropic` SDK, forced tool use for JSON output | Model set by `ANTHROPIC_MODEL` env var |
+| LLM | Claude API via `anthropic` SDK, structured outputs (`output_config.format` JSON schema) for JSON — Sonnet 5.5 rejects forced `tool_choice` | Model set by `ANTHROPIC_MODEL` env var |
 | Approval UI | Streamlit (`app.py`) + CLI fallback (`publish.py`) | |
 | MCP client | `mcp` Python SDK, streamable HTTP transport | |
 | MCP server | n8n **MCP Server Trigger** with **Google Docs Tool** and **Gmail Tool** nodes | Bearer auth |
@@ -98,21 +98,20 @@ groww-pulse/
 
 ### 5.2 Theme discovery (`themes.py`)
 - Sample up to 300 reviews: half 1–2 star, half 3–5 star, longer reviews preferred.
-- One Claude call with forced tool `propose_themes`:
+- One Claude call returning JSON in this schema (`propose_themes`):
   ```json
   {"themes": [{"id": "T1", "name": "string ≤5 words", "description": "one line"}]}  // maxItems 5
   ```
 - Prompt rules: max 5 themes, mutually exclusive, product-level (e.g. "Withdrawal delays"), one "Other / praise" bucket allowed.
 
 ### 5.3 Theme assignment
-- Batches of 80 reviews, each sent as `{id, text}`. Forced tool `assign_reviews`:
+- Batches of 80 reviews, each sent as `{id, text}`. JSON schema `assign_reviews`:
   ```json
   {"assignments": [{"id": "...", "theme_id": "T1",
-                    "mentions_fee": true,
                     "fee_key": "dp_charges | exit_load | brokerage | other | none"}]}
   ```
 - Validate: every input ID returned once, `theme_id` in the discovered set. Retry the batch once on mismatch; any still missing go to "Other".
-- Ranking by code: count, share, average rating per theme → top 3.
+- Ranking by code: count, share, average rating per theme. The top 3 are the top 3 **problem** themes: the "Other / praise" bucket is ranked but excluded from the top 3. `fee_key: none` means no fee mentioned.
 
 ### 5.4 Quotes (`quotes.py`) — no LLM
 - For each top-3 theme: candidates 60–300 characters, prefer rating ≤ 3 for problem themes, sort by `thumbs_up` then recency.
@@ -120,19 +119,19 @@ groww-pulse/
 - Check: the unmasked quote is an exact substring of a CSV `text`. Fail the run if not.
 
 ### 5.5 Fee detection (`fees.py`)
-- Pass A (code): flag reviews matching `generic_fee_keywords`, and score each fee key by its own keywords.
+- Pass A (code, whole-word match): a review matching a fee key's own keywords maps to that key; a review matching only `generic_fee_keywords` maps to `other`; otherwise none.
 - Pass B (model): `fee_key` from step 5.3.
-- Final fee issue = fee key with the most reviews where A and B agree; fall back to B alone. Output `{fee_key, label, mentions, share_of_fee_mentions, examples[3]}`.
+- Final fee issue = fee key with the most reviews where A and B agree; fall back to B alone. Winner is chosen among registry fees only (`other` has no explainer). Output `{fee_key, label, mentions, share_of_fee_mentions, examples[3], other_examples[5]}`; examples are 40–300 characters, most-liked first.
 - If total fee mentions < 3: `weak_signal = true`, still pick the top one, and the pulse says so.
 
 ### 5.6 Weekly pulse (`generate.py`)
-- Claude call with forced tool `write_pulse` → `{themes_summary[3], observation, actions[3]}`. The prompt receives only the computed numbers and quotes.
+- Claude call returning JSON `write_pulse` → `{themes_summary[3], observation, actions[3]}`. The prompt receives only the computed numbers and quotes.
 - Code renders the markdown (headings, counts, quotes inserted verbatim).
 - `validate.word_count(md) ≤ 250`. On fail, re-ask with "cut to N words" up to 2 times, then fail loudly.
 
 ### 5.7 Fee explainer
 - Input to Claude: only the `facts` list for the chosen fee key from `fee_registry.json`, plus the review confusion examples (to choose which facts matter).
-- Forced tool `write_explainer` → `{bullets: [string], maxItems 6}`.
+- JSON schema `write_explainer` → `{bullets: [string], maxItems 6}`.
 - Validators:
   - bullet count ≤ 6;
   - every number/₹ amount/percentage in bullets appears in the registry facts text;
