@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: groww-review-pulse
+    runtime: python
+    plan: free
+    branch: main
+    autoDeployTrigger: commit
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run app.py --server.port $PORT --server.address 0.0.0.0 --server.headless true --browser.gatherUsageStats false
+    healthCheckPath: /_stcore/health
+    envVars:
+      - key: ANTHROPIC_MODEL
+        value: claude-sonnet-5-5
+      - key: REVIEW_WEEKS
+        value: "12"
+      - key: MAX_REVIEWS
+        value: "30000"
+      # Secrets: Render asks for these once when the Blueprint is created. Never commit them.
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: N8N_MCP_URL
+        sync: false
+      - key: N8N_MCP_TOKEN
+        sync: false
+      - key: APP_PASSWORD
+        sync: false

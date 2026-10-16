@@ -59,7 +59,7 @@ def analyse(csv_path, refresh=False, llm=None):
     fee_issue = detect_fee_issue(labelled, registry)
     top3 = [t["id"] for t in top_themes(ranked)]
     quotes = select_quotes(labelled, top3, max_chars=PULSE_QUOTE_MAX_CHARS)
-    return labelled, ranked, fee_issue, quotes
+    return labelled, ranked, fee_issue, quotes, stats
 
 
 def main():
@@ -70,7 +70,7 @@ def main():
     parser.add_argument("--analysis-only", action="store_true", help="skip writing the pulse and explainer")
     args = parser.parse_args()
 
-    labelled, ranked, fee_issue, quotes = analyse(args.csv, args.refresh)
+    labelled, ranked, fee_issue, quotes, _ = analyse(args.csv, args.refresh)
     print("\nAll themes ranked by volume ('Other / praise' is excluded from the top 3):")
     for i, t in enumerate(ranked, 1):
         print(f"  {i}. {t['name']}: {t['count']} reviews ({t['share']:.1%}), avg {t['avg_rating']}/5 - {t['description']}")

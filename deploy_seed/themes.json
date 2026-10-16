@@ -1,0 +1,27 @@
+[
+  {
+    "id": "T1",
+    "name": "Customer support failures",
+    "description": "Unresponsive support, long hold times, tickets closed unresolved, and delays in KYC, account or complaint resolution."
+  },
+  {
+    "id": "T2",
+    "name": "Withdrawals, payments and IPO delays",
+    "description": "Delayed or failed withdrawals, stuck funds, UPI/IPO mandate issues and slow refunds or credits."
+  },
+  {
+    "id": "T3",
+    "name": "High charges and hidden fees",
+    "description": "Complaints about brokerage, DP/DDPI and external charges, unclear deductions and unexpected fees."
+  },
+  {
+    "id": "T4",
+    "name": "App bugs and trading glitches",
+    "description": "Chart errors, lag, scalper button placement, wrong prices, order execution/slippage, auto square-off, and wrong portfolio data."
+  },
+  {
+    "id": "T5",
+    "name": "Other / praise",
+    "description": "General praise, feature requests, and anything that fits nowhere else."
+  }
+]
