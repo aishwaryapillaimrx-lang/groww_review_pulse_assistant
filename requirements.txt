@@ -1,7 +1,7 @@
-anthropic
-pandas
-mcp>=2
-streamlit
-google-play-scraper
-pytest
-python-dotenv
+anthropic==1.15.0
+pandas==3.0.6
+mcp==2.3.0
+streamlit==1.66.0
+google-play-scraper==1.2.7
+pytest==9.1.1
+python-dotenv==1.2.4
