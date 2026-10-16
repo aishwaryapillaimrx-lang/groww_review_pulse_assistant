@@ -1,0 +1,7 @@
+anthropic
+pandas
+mcp
+streamlit
+google-play-scraper
+pytest
+python-dotenv

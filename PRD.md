@@ -1,0 +1,170 @@
+# PRD — Groww Review Pulse & Fee Clarifier
+
+**Product under analysis:** Groww (Android, `com.nextbillion.groww`)
+**Milestone:** 5 — AI workflow: reviews → insights → internal pulse + customer fee explainer → approval-gated MCP logging
+**Builds on:** Milestone 4 — [Mutual Fund FAQ AI Assistant](https://github.com/aishwaryapillaimrx-lang/mutual_fund_faq_ai_assistant) (Groww, HDFC schemes)
+**Owner:** Vineeth Pillai
+**Status:** Draft v1 · 16 Oct 2026
+
+---
+
+## 1. Problem
+
+Product and support teams at a retail investing app see the same complaints every week in app-store reviews, but nobody turns them into a short, regular signal. Fee confusion is the costliest kind: users who think they were charged "hidden fees" leave 1-star reviews, open tickets, and churn. Support then answers the same question by hand, in different words each time.
+
+We need a repeatable weekly workflow that:
+
+1. Reads the last 8–12 weeks of public reviews.
+2. Finds the main themes and the one fee or charge users misunderstand most.
+3. Writes an internal weekly pulse for the product team.
+4. Writes a facts-only, reusable explanation of that fee for support.
+5. Logs both to internal tools (Google Doc + Gmail draft), but only after a human approves.
+
+## 2. Goals and non-goals
+
+**Goals**
+- G1. Cluster reviews into at most 5 themes and rank the top 3 by volume.
+- G2. Pull 3 real, verbatim user quotes that support the top themes.
+- G3. Detect the single most-misunderstood fee or charge from the reviews themselves, not from a pre-chosen scenario.
+- G4. Produce a weekly pulse of 250 words or fewer.
+- G5. Produce a fee explainer of 6 bullets or fewer, neutral tone, with 2 official source links and a "Last checked" date.
+- G6. Nothing is written to Google Docs or Gmail until a human approves the exact content.
+- G7. The email is created as a draft only. It is never sent automatically.
+
+**Non-goals**
+- Replying to reviews on the Play Store.
+- Real-time monitoring or alerting (this is a weekly batch).
+- Sentiment scoring per review beyond star rating.
+- Giving investment, tax or legal advice in the explainer.
+- iOS App Store reviews in v1 (can be added later with the same CSV schema).
+
+## 3. Users
+
+| User | Need | Output they use |
+|---|---|---|
+| Product manager | What's breaking and trending this week, with evidence | Weekly pulse in the shared Google Doc |
+| Support lead | One approved, consistent answer for the top fee question | Fee explainer snippet in the email draft |
+| Approver (PM or support lead) | See exactly what will be written before it's written | Approval screen |
+
+## 4. Scope and inputs
+
+- **Input:** one CSV of public Google Play reviews for Groww covering the last 8–12 weeks.
+- **CSV columns:** `review_id, date, rating, text, thumbs_up, app_version, source`. Reviewer names are dropped at scrape time.
+- **Collection:** a scraper script run on the user's own machine (the build environment can't reach the Play Store).
+
+## 5. Functional requirements
+
+### Step 1 — Review intelligence layer
+
+| ID | Requirement |
+|---|---|
+| R1.1 | Filter to the review window (8–12 weeks, configurable). Drop empty, duplicate and very short reviews (under 20 characters). |
+| R1.2 | Discover **at most 5** themes. Each theme has a name, a one-line description, a review count, a share of total, and average star rating. |
+| R1.3 | Assign every in-window review to exactly one theme. |
+| R1.4 | Rank themes by review count. Report the **top 3**. |
+| R1.5 | Extract **3 quotes**, one per top theme. Each quote must be an exact substring of a review in the CSV. Phone numbers, emails and account IDs are masked. |
+| R1.6 | Flag reviews that mention a fee or charge, and map each to a fee type (DP charges, exit load, brokerage, other). |
+| R1.7 | Pick the fee type with the most mentions as the **identified fee issue**. Report the mention count and 2–3 example reviews. If fewer than 3 reviews mention any fee, mark the signal as weak and say so in the pulse. |
+
+### Step 2 — Weekly product pulse (internal)
+
+| ID | Requirement |
+|---|---|
+| R2.1 | 250 words or fewer, enforced by a validator, not just by the prompt. |
+| R2.2 | Sections: summary of top 3 themes (with counts), supporting quotes, key observation (what's going wrong or trending), 3 action ideas. |
+| R2.3 | Every number in the pulse comes from the computed analysis, not from the model. |
+| R2.4 | Saved as `outputs/weekly_pulse_<date>.md`. |
+
+### Step 3 — Fee explainer (customer-facing)
+
+| ID | Requirement |
+|---|---|
+| R3.1 | Covers the fee identified in R1.7. It must not be a pre-chosen scenario. |
+| R3.2 | 6 bullets or fewer. Neutral, facts-only tone. No advice, no blame, no marketing. |
+| R3.3 | Every fact comes from a curated, human-verified fee registry (`config/fee_registry.json`). Every number in the bullets must appear in the registry facts, enforced by a validator. |
+| R3.4 | Exactly 2 official source links, taken from the registry, never generated by the model. |
+| R3.5 | Ends with `Last checked: <date>` using the registry's verification date. |
+
+### Step 4 — Approval-gated MCP actions
+
+| ID | Requirement |
+|---|---|
+| R4.1 | Show the approver the full payload: pulse, fee issue, explainer bullets, links, email subject and body. |
+| R4.2 | Approver chooses **Approve** or **Reject**. Reject writes nothing and logs the rejection. |
+| R4.3 | On approve, call MCP tool `append_to_doc` with the payload below, appended to the end of a fixed Google Doc. |
+| R4.4 | On approve, call MCP tool `create_email_draft`. Subject: `Weekly Product Pulse + Customer Clarification — <date>`. Body: the pulse plus the fee explainer as a reusable support snippet. |
+| R4.5 | No send action exists anywhere in the workflow. |
+| R4.6 | Each run writes an audit record: run ID, approver decision, timestamp, tool results (doc ID, draft ID). |
+| R4.7 | Re-running publish for the same run ID must not append a second copy (idempotency key = run ID). |
+
+**Doc payload**
+```json
+{
+  "date": "2026-10-16",
+  "top_themes": [{"name": "...", "count": 0, "share": 0.0}],
+  "weekly_pulse": "markdown text",
+  "identified_fee_issue": {"fee_key": "dp_charges", "label": "...", "mentions": 0},
+  "explanation_bullets": ["..."],
+  "source_links": ["https://...", "https://..."]
+}
+```
+
+## 6. Candidate fee issues (verified 16 Oct 2026)
+
+The workflow picks one of these from the data. The facts below are what the explainer is allowed to say.
+
+[Certain] **DP charges on selling shares** — Groww pricing page: depository ₹3.50 (₹3.25 for women) + Groww ₹16.50 per sell transaction; Groww's part waived below ₹100 debit value; 18% GST on top; ₹0 for intraday and F&O. [Likely] This is the strongest candidate, because it moved from per-stock-per-day to per-sell-transaction in June 2025, and users often read it as a hidden fee.
+
+[Certain] **Exit load on mutual funds** — charged by the AMC, not Groww; a percentage of redemption value deducted from proceeds; set per scheme in the SID; each SIP instalment has its own holding period.
+
+[Certain] **Brokerage** — ₹20 or 0.1% per order, whichever is lower, minimum ₹5; 1% with no cap on UPI Mandate balance orders.
+
+Sources: groww.in/pricing/stocks · Groww Help "How much does Groww charge for stocks?" · groww.in/p/exit-load-in-mutual-funds · investor.sebi.gov.in/exit_load.html
+
+## 7. Acceptance criteria
+
+- [ ] Themes ≤ 5; top 3 listed with counts.
+- [ ] 3 quotes, each found verbatim in the CSV (automated check passes).
+- [ ] Fee issue named, with mention count and example reviews, and it matches the most-mentioned fee type in the data.
+- [ ] Pulse ≤ 250 words (automated check).
+- [ ] Explainer ≤ 6 bullets, 2 official links, "Last checked" line, no number absent from the registry (automated check).
+- [ ] Approval screen shown before any write; reject path writes nothing.
+- [ ] After approve: new entry visible at the end of the Google Doc; new draft visible in Gmail Drafts; nothing in Sent.
+- [ ] README explains how to run, where approval happens, and which fee issue was found.
+
+## 8. Deliverables mapping
+
+| Brief deliverable | Where it comes from |
+|---|---|
+| Working prototype or ≤3-min demo | Streamlit app run + screen recording |
+| Weekly pulse (MD/PDF/Doc) | `outputs/weekly_pulse_<date>.md` |
+| Doc snippet with appended entry | Screenshot of the Google Doc after approval |
+| Email draft screenshot/text | Gmail Drafts screenshot + `outputs/email_draft_<date>.txt` |
+| Reviews CSV sample | `data/reviews_sample.csv` (first 50 rows of the real scrape) |
+| Source list (4–6 URLs) | `SOURCES.md` |
+| README | `README.md` |
+
+## 9. Success metrics (if this ran for real)
+
+- Pulse produced every week with zero manual edits to the numbers.
+- Fee explainer accepted by support without changes in at least 3 of 4 weeks.
+- Week-over-week drop in reviews mentioning the identified fee after the snippet is in use.
+
+## 10. Risks
+
+| Risk | Impact | Mitigation |
+|---|---|---|
+| Model invents a quote | Credibility loss | Quotes chosen by code from the CSV; verbatim check |
+| Model invents a fee number or link | Wrong info sent to customers | Registry-only facts; numeric check; links injected by code |
+| Fee pricing changes after verification | Stale explainer | `last_checked` shown; re-verify before each run |
+| Too few fee mentions in the window | Weak or wrong fee pick | Weak-signal flag; widen to 12 weeks |
+| Play Store scraping blocked or rate-limited | No input | Retry with backoff; accept a manually exported CSV |
+| n8n MCP tool naming or `$fromAI` behaviour differs by version | Tool calls fail | Pin n8n version; set up n8n early; keep an approved-run screenshot and execution log as proof. Contingency only: build a local mock MCP server if n8n can't be made to work |
+| Approval bypassed | Unreviewed writes | Write tools are reachable only through the publish step, which checks the stored approval record |
+
+## 11. Assumptions and open questions
+
+- Assumption: English-language Play Store reviews from India are representative enough for v1.
+- Assumption: approver and email recipient are the same person (draft goes to own Gmail).
+- Open: should Hindi or Hinglish reviews be included? (Affects theme quality.)
+- Open: hosted n8n Cloud or self-hosted n8n? (Affects the MCP URL and auth setup.)
