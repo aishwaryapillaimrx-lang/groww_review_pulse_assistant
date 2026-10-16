@@ -7,7 +7,7 @@ import json
 import uuid
 from pathlib import Path
 
-from pulse.approval import payload_hash, write_pending
+from pulse.approval import write_run_files
 from pulse.validate import (
     ValidationError,
     check_explainer,
@@ -167,14 +167,9 @@ def generate_run(labelled, top, quotes, names, fee_issue, registry, llm, date, w
     run_id = uuid.uuid4().hex[:8]
     out = Path(out_dir)
     out.mkdir(exist_ok=True)
-    paths = {
-        "pulse": out / f"weekly_pulse_{date}.md",
-        "email": out / f"email_draft_{date}.txt",
-        "payload": out / f"payload_{run_id}.json",
-    }
+    paths = {"pulse": out / f"weekly_pulse_{date}.md", "email": out / f"email_draft_{date}.txt"}
     paths["pulse"].write_text(pulse_md + "\n", encoding="utf-8")
     paths["email"].write_text(f"Subject: {subject}\n\n{body}", encoding="utf-8")
-    paths["payload"].write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
-    paths["approval"] = write_pending(run_id, payload_hash(payload, subject, body), out)
+    paths.update(write_run_files(run_id, payload, subject, body, out))
     return {"run_id": run_id, "paths": paths, "pulse": pulse_md, "explainer": explainer,
             "payload": payload, "subject": subject, "body": body}

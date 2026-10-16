@@ -1,6 +1,6 @@
 anthropic
 pandas
-mcp
+mcp>=2
 streamlit
 google-play-scraper
 pytest

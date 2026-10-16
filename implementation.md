@@ -155,7 +155,7 @@ groww-pulse/
 
 **CLI (`publish.py <run_id>`)** — prints the same preview; you must type `APPROVE` exactly.
 
-**Guard in `mcp_publish.py`:** refuses to connect unless the approval file says `approved` and its `payload_sha256` matches the current payload (so nothing can be edited after approval). Stores `published: true` after success to block duplicate appends.
+**Guard in `mcp_publish.py`:** refuses to connect unless the approval file says `approved` and its `payload_sha256` matches the current content. The hash covers the doc payload **and** the email subject and body (stored per run in `email_<run_id>.json`), so nothing can be edited after approval. Each tool's result is recorded as it succeeds, so a retry after a partial failure skips finished tools and the Doc is never appended twice. `published: true` is set when both finish. `python publish.py --list-tools` shows the server's tools and argument names without writing anything.
 
 ## 7. n8n MCP server
 
@@ -172,9 +172,10 @@ groww-pulse/
 [Likely] `$fromAI` keys become the tool's input arguments, so the Python client passes `entry_text`, `subject`, `body`. Verify with `list_tools`.
 No Gmail **send** node exists in the workflow, so sending is impossible from MCP.
 
-**Client call (sketch):**
+**Client call (sketch; `mcp` 2.x, as built in `pulse/mcp_publish.py`):**
 ```python
-async with streamablehttp_client(N8N_MCP_URL, headers={"Authorization": f"Bearer {TOKEN}"}) as (r, w, _):
+http = create_mcp_http_client(headers={"Authorization": f"Bearer {TOKEN}"})
+async with http, streamable_http_client(N8N_MCP_URL, http_client=http) as (r, w):
     async with ClientSession(r, w) as s:
         await s.initialize()
         tools = {t.name for t in (await s.list_tools()).tools}

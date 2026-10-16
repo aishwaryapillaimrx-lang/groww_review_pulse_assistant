@@ -11,11 +11,11 @@ Source: review of `PRD.md` and `implementation.md` (16 Oct 2026). None of these 
 | A3 | Define number normalisation for the explainer validator (`₹3.50` vs `3.5`, `1%` vs `1 percent`, derived sums like ₹3.50 + ₹16.50 = ₹20). | Validator would over-reject valid bullets. |
 | A4 | Label the exit-load ₹27,000 → ₹270 example explicitly as illustrative. | Facts-only requirement (R3.3). |
 | A5 | Staleness check on registry `last_checked` (warn or block if older than about 7 days). | A static date would be shown as "verified" on later runs. |
-| A6 | Hash the exact rendered doc entry and email subject/body, not only the payload. | Template changes could bypass the approval hash. |
-| A7 | Per-tool completion flags for publish (doc done, draft done). Put the run ID in the doc entry. | Partial failure plus retry would append the doc entry twice. |
+| A6 ✅ done in Step 7 | Hash the exact rendered doc entry and email subject/body, not only the payload. | Template changes could bypass the approval hash. |
+| A7 ✅ done in Step 7 | Per-tool completion flags for publish (doc done, draft done). Put the run ID in the doc entry. | Partial failure plus retry would append the doc entry twice. |
 | A8 | Note that n8n tools take no idempotency key, so dedupe is client-side only. | A lost response could still cause a duplicate. |
 | A9 | Extend PII masking to PAN-like strings and UPI IDs. | Current masking covers only emails, phones and long digits. |
-| A10 | Prefix each doc entry with `\n\n`. | `endOfSegmentLocation` appends with no separator. |
+| A10 ✅ done in Step 7 | Prefix each doc entry with `\n\n`. | `endOfSegmentLocation` appends with no separator. |
 
 ## B. Spec ambiguities to resolve
 
