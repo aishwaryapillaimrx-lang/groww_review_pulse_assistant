@@ -222,3 +222,6 @@ __marimo__/
 # Groww pulse project
 data/reviews.csv
 outputs/
+
+# Personal n8n workflow copy (real Doc ID and email)
+n8n/*.local.json
